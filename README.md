@@ -1,6 +1,6 @@
 # x402-ap2
 
-**AP2를 x402 extension으로 구현한 TypeScript SDK.** — BAY 4th Team Project: x402 with AP2
+**AP2를 x402 extension으로 구현한 TypeScript SDK.**
 
 x402 protocol은 그대로 두고, AP2 mandate를 x402 `extensions.ap2` 칸에만 실어 보낸다.
 EIP-3009 `nonce = keccak256(paymentMandate)`로 두 계층을 묶어서, mandate 없이는 송금을 정산할 수 없게 만든다.
@@ -56,12 +56,9 @@ extension을 모르는 x402 facilitator도 그대로 쓸 수 있다. AP2 검증�
 ## 빠른 시작
 
 ```bash
-git clone --recursive https://github.com/LOBYI/x402-AP2.git   # forge-std submodule 포함
-cd x402-AP2 && npm install
+npm install
 npm test        # 39개 test (자세한 내용은 아래 test guide)
 ```
-
-이미 클론했다면 `git submodule update --init`으로 forge-std를 받는다.
 
 **Merchant**: handler를 감싸기만 하면 된다. Web 표준 `Request → Response` 방식이고, Node/Express용 adapter도 있다.
 
@@ -208,7 +205,7 @@ PAYER_KEY=0x… npm run demo:client
 
 ### 4. Sepolia live test - Circle USDC로 실제 정산
 
-**준비 (한 번만)**
+**준비 (한 번만 시행)**
 
 1. `npm run testnet:wallet` - payer 지갑을 만들어 `.env`에 저장한다(주소만 출력).
 2. [faucet.circle.com](https://faucet.circle.com)에서 "Ethereum Sepolia"를 고르고, payer 주소로 USDC를 받는다.
@@ -271,17 +268,6 @@ key는 지갑 app(Node)에만 있고 browser로는 넘어가지 않는다. 지�
 - **cast**: `cast call <USDC> "balanceOf(address)(uint256)" <주소> --rpc-url $RPC_URL`
 - **merchant event log**: `curl http://127.0.0.1:4020/dev/events` (402 발행 / 정산 / 거부와 사유)
 - 정산 event `AuthorizationUsed`의 nonce가 `keccak256(paymentMandate)`와 같은지 보면, AP2와 x402가 chain 위에서 묶였는지 확인할 수 있다.
-
-### 문제 해결
-
-| 증상 | 원인과 해결 |
-| --- | --- |
-| `merchant_untrusted` | client가 접속한 주소와 server `PUBLIC_URL`의 origin이 다름. `localhost`와 `127.0.0.1`을 섞으면 안 된다 |
-| `insufficient_funds` | payer(또는 MetaMask 계정)에 USDC 부족. `testnet:check`로 확인 |
-| MetaMask 창이 안 뜸 | browser에 MetaMask가 없거나 다른 계정이 선택됨. 지갑 app의 MetaMask 주소와 같은 계정을 선택해야 한다 |
-| 결제 직후 잔액이 그대로 | 공개 RPC가 새 block을 늦게 반영. 몇 초 뒤 `↻ 잔액` |
-| proxy 뒤에서 431/400 | `PAYMENT-SIGNATURE` header가 7–10KB. nginx 등의 header 한도를 늘려야 한다 |
-| server 시작 실패 (`EADDRINUSE`) | 이미 떠 있는 server가 있음. `pkill -f demo/server.ts; pkill -f demo/web/server.ts` |
 
 ## 운영 시 주의
 
