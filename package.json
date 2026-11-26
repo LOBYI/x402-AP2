@@ -1,0 +1,61 @@
+{
+  "name": "x402-ap2",
+  "version": "0.1.0",
+  "description": "Unified SDK for x402 (HTTP 402 crypto payments) and AP2 (Agent Payments Protocol mandates)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "example": "tsx examples/e2e.ts",
+    "demo:server": "tsx demo/server.ts",
+    "demo:client": "tsx demo/client.ts",
+    "demo:attack": "tsx demo/attack.ts",
+    "forge:vector": "tsx scripts/gen-forge-vector.ts",
+    "forge:test": "npm run -s forge:vector && cd contracts && forge test",
+    "test:anvil": "cd contracts && forge build -q && cd .. && vitest run test/anvil.test.ts",
+    "demo:anvil-setup": "tsx demo/anvil-setup.ts",
+    "testnet:wallet": "tsx scripts/testnet-wallet.ts",
+    "testnet:check": "tsx --env-file-if-exists=.env scripts/testnet-check.ts",
+    "testnet:server": "tsx --env-file-if-exists=.env demo/server.ts",
+    "testnet:client": "tsx --env-file-if-exists=.env demo/client.ts",
+    "testnet:attack": "tsx --env-file-if-exists=.env demo/attack.ts",
+    "demo:shop": "tsx demo/shop.ts",
+    "testnet:shop": "tsx --env-file-if-exists=.env demo/shop.ts",
+    "demo:web": "tsx demo/web/server.ts",
+    "testnet:web": "tsx --env-file-if-exists=.env demo/web/server.ts"
+  },
+  "keywords": [
+    "x402",
+    "ap2",
+    "agent-payments",
+    "sd-jwt",
+    "eip-3009",
+    "http-402"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "jose": "^6.2.0",
+    "viem": "^2.58.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}

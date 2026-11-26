@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x402-ap2 Wallet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3E402%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #14161a; --muted: #5d6470; --line: #e3e6eb; --soft: #f0f2f5;
+    --x402: #2563eb; --x402-bg: #e8effd; --ap2: #7c3aed; --ap2-bg: #f1eafd; --bind: #c2410c; --bind-bg: #fdeee5;
+    --ok: #15803d; --ok-bg: #e7f6ec; --warn: #b45309; --warn-bg: #fdf3e2; --err: #b91c1c; --err-bg: #fdeaea;
+    --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a20; --ink: #e8eaee; --muted: #9aa1ad; --line: #2a2f38; --soft: #1f232b;
+      --x402: #6b9bff; --x402-bg: #1a2640; --ap2: #b28cff; --ap2-bg: #261d3d; --bind: #ff9a62; --bind-bg: #3a2318;
+      --ok: #4ade80; --ok-bg: #15301f; --warn: #fbbf24; --warn-bg: #352a12; --err: #f87171; --err-bg: #3a1a1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: -0.01em; }
+  header h1 span { color: var(--muted); font-weight: 500; }
+  header h1 { white-space: nowrap; }
+  @media (max-width: 600px) { header { padding: 12px 16px; gap: 8px; } #merchant { display: none; } }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+  .grow { flex: 1; }
+  main { display: grid; grid-template-columns: 360px 1fr; gap: 20px; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .addr { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
+  .big { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  button { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); padding: 7px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  button.approve { background: var(--ok); color: #fff; border-color: var(--ok); font-weight: 600; padding: 10px 18px; }
+  button.decline { background: transparent; color: var(--err); border-color: var(--err); padding: 10px 18px; }
+  input[type=text], input[type=number] { font: inherit; width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--soft); border-radius: 10px; padding: 3px; border: 1px solid var(--line); }
+  .seg button { border: 0; background: transparent; padding: 8px; border-radius: 8px; font-weight: 550; }
+  .seg button.on { background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .hnp { margin-top: 12px; display: grid; gap: 10px; }
+  .hnp label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  .checks label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 13px; }
+  .bar { height: 8px; background: var(--soft); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
+  .bar > div { height: 100%; background: var(--ap2); width: 0; transition: width .3s; }
+  .product { border-top: 1px solid var(--line); padding: 12px 0; display: grid; gap: 8px; }
+  .product:first-of-type { border-top: 0; padding-top: 0; }
+  .product .t { font-weight: 600; }
+  .product .p { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .price { font-weight: 650; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; letter-spacing: .02em; white-space: nowrap; }
+  .b-x402 { color: var(--x402); background: var(--x402-bg); }
+  .b-AP2 { color: var(--ap2); background: var(--ap2-bg); }
+  .b-binding { color: var(--bind); background: var(--bind-bg); }
+  .b-wallet { color: var(--muted); background: var(--soft); }
+  /* stepper */
+  .stepper { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+  .st { border-radius: 8px; padding: 8px 6px; background: var(--soft); border: 1px solid var(--line); text-align: center; min-width: 0; transition: all .2s; }
+  .st .n { font-weight: 700; font-size: 13px; }
+  .st .l { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st.done { border-color: transparent; }
+  .st.done.L-x402 { background: var(--x402-bg); } .st.done.L-x402 .n { color: var(--x402); }
+  .st.done.L-AP2 { background: var(--ap2-bg); } .st.done.L-AP2 .n { color: var(--ap2); }
+  .st.done.L-both { background: linear-gradient(90deg, var(--x402-bg) 50%, var(--ap2-bg) 50%); }
+  .st.done.L-binding { background: var(--bind-bg); } .st.done.L-binding .n { color: var(--bind); }
+  .st.active { outline: 2px solid var(--ink); outline-offset: 1px; }
+  @media (max-width: 700px) { .stepper { grid-template-columns: repeat(5, 1fr); } }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  /* approval */
+  .approval { border: 2px solid var(--warn); background: var(--warn-bg); }
+  .approval h2 { color: var(--warn); }
+  table.kv { width: 100%; border-collapse: collapse; margin: 6px 0 14px; }
+  table.kv td { padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.kv td:first-child { color: var(--muted); width: 92px; }
+  .total { font-size: 22px; font-weight: 700; }
+  /* timeline */
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .tl li:first-child { border-top: 0; }
+  .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px; background: var(--soft); border: 1px solid var(--line); }
+  .tl .title { font-weight: 550; }
+  .tl .meta { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; }
+  details { margin-top: 4px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  pre { font-family: var(--mono); font-size: 11.5px; background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 280px; margin: 6px 0 0; }
+  .li-done .num { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+  .li-error .num, .li-declined .num { background: var(--err-bg); color: var(--err); border-color: transparent; }
+  .result { border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+  .result.ok { background: var(--ok-bg); color: var(--ok); }
+  .result.err { background: var(--err-bg); color: var(--err); }
+  .result.dec { background: var(--warn-bg); color: var(--warn); }
+  .result a { color: inherit; font-weight: 600; }
+  .hist { list-style: none; padding: 0; margin: 0; }
+  .hist li { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .hist li:first-child { border-top: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 0; }
+  a { color: var(--x402); }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .signer { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 12px 0 8px; }
+  .signer button { padding: 8px; font-size: 13px; }
+  .signer button.on { border-color: var(--ink); background: var(--panel); font-weight: 600; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 12px; margin-top: 8px; }
+  .mm { color: #e2761b; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>x402-ap2 <span>Wallet</span></h1>
+  <span class="pill" id="network">…</span>
+  <span class="pill" id="merchant">…</span>
+  <div class="grow"></div>
+  <span class="small muted" id="conn">연결 중…</span>
+</header>
+
+<main>
+  <aside>
+    <section class="card">
+      <div class="row"><h2>결제 지갑 (x402 서명자)</h2><button id="refresh" class="small">↻ 잔액</button></div>
+      <div class="signer">
+        <button id="s-server" data-mode="server">서버 키 <span class="small muted">.env</span></button>
+        <button id="s-mm" data-mode="metamask"><span class="mm">🦊</span> MetaMask</button>
+      </div>
+      <div class="big" id="payerBal">—</div>
+      <div class="addr" id="payerAddr"></div>
+      <div class="small muted" id="signerHelp"></div>
+      <div class="warn" id="selfPay" hidden>MetaMask 계정이 수취인(payTo)과 같습니다. 자기 자신에게 보내는 결제라 잔액 변화가 보이지 않습니다.</div>
+      <div class="row small" style="margin-top:12px"><span class="muted">수취인 (payTo)</span><span id="payToBal">—</span></div>
+      <div class="addr" id="payToAddr"></div>
+      <div class="row small" style="margin-top:12px"><span class="muted">사용자 (mandate 발급자)</span><span class="addr" id="userId"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>AP2 모드</h2>
+      <div class="seg">
+        <button id="m-hp" data-kind="human_present">직접 승인<br><span class="small muted">human-present</span></button>
+        <button id="m-hnp" data-kind="human_not_present">에이전트 위임<br><span class="small muted">human-not-present</span></button>
+      </div>
+      <p class="small muted" id="modeHelp" style="margin:10px 0 0"></p>
+      <div class="hnp" id="hnpBox" hidden>
+        <label>건당 최대 금액 ($)<input type="number" id="maxPer" min="0" step="0.01"></label>
+        <label>누적 예산 ($)<input type="number" id="budget" min="0" step="0.01"></label>
+        <div><div class="small muted" style="margin-bottom:4px">허용 상품 (checkout.line_items)</div><div class="checks" id="skus"></div></div>
+        <button class="primary" id="issue">제약 변경 → open mandate 재발급</button>
+        <div>
+          <div class="row small"><span class="muted">예산 사용</span><span id="spentTxt">—</span></div>
+          <div class="bar"><div id="spentBar"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>상품</h2>
+      <div id="products"></div>
+    </section>
+  </aside>
+
+  <section>
+    <div class="card">
+      <h2>프로토콜 흐름</h2>
+      <div class="stepper" id="stepper"></div>
+      <div class="legend">
+        <span><span class="badge b-x402">x402</span> 결제 레일</span>
+        <span><span class="badge b-AP2">AP2</span> extensions.ap2 · 권한 증명</span>
+        <span><span class="badge b-binding">binding</span> nonce = keccak256(paymentMandate)</span>
+      </div>
+    </div>
+
+    <div class="card approval" id="approval" hidden></div>
+
+    <div class="card">
+      <div class="row"><h2>현재 결제</h2><span class="small muted" id="curId"></span></div>
+      <div id="timeline"><div class="empty">왼쪽에서 상품을 골라 구매를 시작하세요</div></div>
+    </div>
+
+    <div class="card">
+      <h2>기록</h2>
+      <ul class="hist" id="history"><li class="muted">아직 없음</li></ul>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = "__WALLET_TOKEN__";
+const STEPS = [
+  [1, "x402", "GET 리소스"], [2, "both", "402 + checkout"], [3, "AP2", "승인 · 제약"], [4, "AP2", "mandate"],
+  [5, "binding", "EIP-3009"], [6, "both", "PAYMENT-SIG"], [7, "AP2", "머천트 검증"], [8, "x402", "verify·settle"],
+  [9, "x402", "온체인 tx"], [10, "x402", "200 + 영수증"],
+];
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const usd = (cents) => "$" + (cents / 100).toFixed(2);
+const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
+const api = (path, opts = {}) => fetch(path, { ...opts, headers: { "content-type": "application/json", "x-wallet-token": TOKEN, ...(opts.headers || {}) } })
+  .then(async (r) => { const b = await r.json().catch(() => ({})); if (!r.ok) throw new Error(b.error || r.status); return b; });
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+
+let state = null;
+let current = null;          // purchaseId being shown
+const purchases = new Map(); // id → { events: [], status, meta }
+let countdown = null;
+let lastSeq = 0;             // dedupe events replayed on SSE reconnect
+
+// ── state ──
+async function loadState() {
+  state = await api("/api/state");
+  $("network").textContent = state.network;
+  $("merchant").textContent = state.merchant.name;
+  $("payerBal").textContent = state.payer.address == null ? "연결 필요" : state.payer.usdc != null ? Number(state.payer.usdc).toFixed(2) + " USDC" : "n/a";
+  $("payerAddr").textContent = state.payer.address ?? "";
+  const mm = state.signer.mode === "metamask";
+  $("s-server").classList.toggle("on", !mm);
+  $("s-mm").classList.toggle("on", mm);
+  $("signerHelp").textContent = mm
+    ? "송금 서명(EIP-3009)은 MetaMask가 합니다. 가스는 facilitator가 내므로 이 계정에 ETH가 없어도 됩니다."
+    : "송금 서명(EIP-3009)은 지갑 앱의 서버 키(.env PAYER_KEY)가 합니다.";
+  $("selfPay").hidden = !(mm && state.payer.address && state.payer.address.toLowerCase() === state.payTo.address.toLowerCase());
+  $("payToBal").textContent = state.payTo.usdc != null ? Number(state.payTo.usdc).toFixed(2) + " USDC" : "n/a";
+  $("payToAddr").textContent = state.payTo.address;
+  $("userId").textContent = state.userId;
+  renderMode();
+  renderProducts();
+}
+
+function renderMode() {
+  const p = state.policy;
+  $("m-hp").classList.toggle("on", p.kind === "human_present");
+  $("m-hnp").classList.toggle("on", p.kind === "human_not_present");
+  $("hnpBox").hidden = p.kind !== "human_not_present";
+  $("modeHelp").textContent = p.kind === "human_present"
+    ? "결제마다 checkout을 확인하고 직접 승인합니다. 승인하면 사용자 키가 closed mandate에 서명합니다."
+    : "사용자가 제약을 담은 open mandate를 에이전트에게 발급합니다. 에이전트는 제약 안에서 승인 없이 결제합니다.";
+  if (document.activeElement?.tagName !== "INPUT") {
+    $("maxPer").value = (p.maxPerPurchase / 100).toFixed(2);
+    $("budget").value = (p.budget / 100).toFixed(2);
+    $("skus").innerHTML = state.products.map((x) =>
+      `<label><input type="checkbox" value="${esc(x.sku)}" ${p.allowedSkus.includes(x.sku) ? "checked" : ""}> ${esc(x.title)} <span class="muted small">${esc(x.price)}</span></label>`).join("");
+  }
+  const pct = p.budget ? Math.min(100, (state.spent / p.budget) * 100) : 0;
+  $("spentBar").style.width = pct + "%";
+  $("spentTxt").textContent = `${usd(state.spent)} / ${usd(p.budget)}`;
+}
+
+function renderProducts() {
+  const busy = state.busy || isBusy();
+  $("products").innerHTML = state.products.map((p, i) => {
+    const input = p.method === "POST" ? `<input type="text" id="in-${i}" placeholder="번역할 문장 (단어당 $0.01)">`
+      : p.path === "/api/forecast" ? `<input type="text" id="in-${i}" placeholder="도시 (기본 Seoul)">` : "";
+    return `<div class="product">
+      <div class="row"><span class="t">${esc(p.title)}</span><span class="price">${esc(p.price)}</span></div>
+      <div class="p">${esc(p.method)} ${esc(p.path)}</div>
+      ${input}
+      <button class="primary" data-buy="${i}" ${busy ? "disabled" : ""}>${state.policy.kind === "human_present" ? "구매" : "에이전트에게 구매 맡기기"}</button>
+    </div>`;
+  }).join("");
+}
+
+function isBusy() { const c = current && purchases.get(current); return !!c && !c.status; }
+
+// ── events ──
+const handledSigns = new Set();
+function onEvent(e) {
+  if (e.seq) { if (e.seq <= lastSeq) return; lastSeq = e.seq; }
+  if (e.kind === "sign_request") handleSignRequest(e);
+  if (e.purchaseId === "policy") { toast(e.title); return; }
+  let p = purchases.get(e.purchaseId);
+  if (!p) { p = { events: [], status: null, started: Date.now() }; purchases.set(e.purchaseId, p); }
+  p.events.push(e);
+  if (e.kind === "done") p.status = "ok";
+  if (e.kind === "error") p.status = "err";
+  if (e.kind === "declined") p.status = "dec";
+  current = e.purchaseId;
+  render();
+  if (p.status) { loadState().catch(() => {}); setTimeout(() => loadState().catch(() => {}), 4000); renderHistory(); }
+}
+
+function maxStep(p) { return Math.max(0, ...p.events.map((e) => e.step || 0)); }
+
+function render() {
+  const p = current && purchases.get(current);
+  // stepper
+  const top = p ? maxStep(p) : 0;
+  const reached = new Set(p ? p.events.map((e) => e.step).filter(Boolean) : []);
+  if (top >= 9) { reached.add(7); reached.add(8); }
+  if (p?.status === "ok") for (let i = 1; i <= 10; i++) reached.add(i);
+  $("stepper").innerHTML = STEPS.map(([n, l, label]) =>
+    `<div class="st L-${l} ${reached.has(n) ? "done" : ""} ${!p?.status && n === top ? "active" : ""}"><div class="n">${n}</div><div class="l">${esc(label)}</div></div>`).join("");
+
+  // approval
+  const lastApproval = p && !p.status ? [...p.events].reverse().find((e) => e.kind === "approval") : null;
+  const pending = lastApproval && p.events.indexOf(lastApproval) === p.events.length - 1 ? lastApproval : null;
+  if (pending) showApproval(pending); else hideApproval();
+
+  // timeline
+  if (!p) return;
+  $("curId").textContent = current.slice(0, 8);
+  const items = p.events.filter((e) => e.kind !== "approval" || true).map((e) => {
+    const layers = e.layer === "x402+AP2" ? ["x402", "AP2"] : e.layer ? [e.layer] : [];
+    const cls = e.kind === "done" ? "li-done" : e.kind === "error" ? "li-error" : e.kind === "declined" ? "li-declined" : "";
+    const num = e.step ?? (e.kind === "done" ? "✓" : e.kind === "declined" ? "–" : "!");
+    const detail = e.detail != null ? `<details><summary>자세히</summary><pre>${esc(typeof e.detail === "string" ? e.detail : JSON.stringify(e.detail, null, 2))}</pre></details>` : "";
+    return `<li class="${cls}"><div class="num">${esc(num)}</div><div>
+      <div class="meta">${layers.map((l) => `<span class="badge b-${esc(l)}">${esc(l)}</span>`).join("")}</div>
+      <div class="title">${esc(e.title)}</div>${detail}</div></li>`;
+  });
+  const lastEv = p.events[p.events.length - 1];
+  if (!p.status && !pending) items.push(`<li><div class="num"><span class="spinner"></span></div><div class="muted">${lastEv?.kind === "sign_request" ? "MetaMask 창에서 서명을 확인하세요…" : "진행 중…"}</div></li>`);
+  let result = "";
+  const last = p.events[p.events.length - 1];
+  if (p.status === "ok") {
+    const d = last.detail || {};
+    result = `<div class="result ok"><b>결제 완료</b> · ${esc(usd(d.amount?.amount ?? 0))}${d.link ? ` · <a href="${esc(d.link)}" target="_blank" rel="noopener">Etherscan에서 보기 ↗</a>` : ""}
+      <pre>${esc(JSON.stringify(d.data, null, 2))}</pre></div>`;
+  } else if (p.status === "err") {
+    result = `<div class="result err"><b>${esc(last.title)}</b><br>${esc(typeof last.detail === "string" ? last.detail : JSON.stringify(last.detail))}</div>`;
+  } else if (p.status === "dec") {
+    result = `<div class="result dec"><b>거절함</b> — 서명도 송금도 하지 않았습니다.</div>`;
+  }
+  $("timeline").innerHTML = `<ul class="tl">${items.join("")}</ul>${result}`;
+  renderProducts();
+}
+
+function showApproval(e) {
+  const c = e.detail.checkout;
+  const r = c.payment_requirements || {};
+  const box = $("approval");
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="row"><h2>결제 승인 요청</h2><span class="badge b-AP2">AP2 · human-present</span></div>
+    <div class="small muted">머천트 서명이 검증된 checkout입니다. 승인하면 사용자 키로 mandate에 서명하고 송금을 승인합니다.</div>
+    <table class="kv">
+      <tr><td>머천트</td><td><b>${esc(c.merchant.name)}</b> <span class="muted small">${esc(c.merchant.id)}</span></td></tr>
+      ${c.line_items.map((i) => `<tr><td>품목</td><td>${esc(i.quantity)}× ${esc(i.title)} <span class="muted">— ${esc(usd(i.unit_price * i.quantity))}</span></td></tr>`).join("")}
+      <tr><td>합계</td><td><span class="total">${esc(usd(c.total.amount))}</span> <span class="muted small">AP2 ${esc(c.total.amount)} ${esc(c.total.currency)} minor units</span></td></tr>
+      <tr><td><span class="badge b-x402">x402</span></td><td class="small">${esc(r.amount)} atomic USDC · ${esc(r.scheme)} · ${esc(r.network)}<br><span class="addr">→ ${esc(r.payTo)}</span></td></tr>
+      <tr><td>만료</td><td id="cd" class="small"></td></tr>
+    </table>
+    <div class="row" style="justify-content:flex-end; gap:10px">
+      <button class="decline" id="decline">거절</button>
+      <button class="approve" id="approve">${state?.signer?.mode === "metamask" ? "승인 → MetaMask에서 서명" : "승인하고 결제"}</button>
+    </div>`;
+  const tick = () => { const left = c.exp - Math.floor(Date.now() / 1000); const el = $("cd"); if (el) el.textContent = left > 0 ? `${Math.floor(left / 60)}분 ${left % 60}초 후` : "만료됨"; };
+  tick(); clearInterval(countdown); countdown = setInterval(tick, 1000);
+  const decide = (approve) => {
+    $("approve").disabled = $("decline").disabled = true;
+    api(`/api/purchases/${e.purchaseId}/decision`, { method: "POST", body: JSON.stringify({ approve }) })
+      .catch((err) => { toast(err.message); $("approve").disabled = $("decline").disabled = false; });
+  };
+  $("approve").onclick = () => decide(true);
+  $("decline").onclick = () => decide(false);
+}
+function hideApproval() { $("approval").hidden = true; clearInterval(countdown); }
+
+function renderHistory() {
+  const done = [...purchases.entries()].filter(([, p]) => p.status).reverse();
+  if (!done.length) return;
+  $("history").innerHTML = done.map(([id, p]) => {
+    const last = p.events[p.events.length - 1];
+    const color = p.status === "ok" ? "var(--ok)" : p.status === "dec" ? "var(--warn)" : "var(--err)";
+    const req = p.events.find((e) => e.step === 1);
+    const amt = p.status === "ok" ? usd(last.detail?.amount?.amount ?? 0) : "";
+    const link = p.status === "ok" && last.detail?.link ? ` <a href="${esc(last.detail.link)}" target="_blank" rel="noopener">tx ↗</a>` : "";
+    return `<li><span class="dot" style="background:${color}"></span><span class="grow">${esc(req?.title ?? id.slice(0, 8))}</span><span class="muted small">${esc(p.status === "ok" ? "완료" : p.status === "dec" ? "거절" : "실패")}</span><b>${esc(amt)}</b>${link}</li>`;
+  }).join("");
+}
+
+// ── actions ──
+$("products").addEventListener("click", async (ev) => {
+  const i = ev.target?.dataset?.buy; if (i == null) return;
+  const p = state.products[Number(i)];
+  const input = $(`in-${i}`)?.value?.trim() || "";
+  try {
+    const { purchaseId } = await api("/api/buy", { method: "POST", body: JSON.stringify({ path: p.path, input }) });
+    current = purchaseId;
+    purchases.set(purchaseId, purchases.get(purchaseId) || { events: [], status: null });
+    render();
+  } catch (e) { toast(e.message); }
+});
+for (const id of ["m-hp", "m-hnp"]) $(id).onclick = async (ev) => {
+  const kind = ev.currentTarget.dataset.kind;
+  if (kind === state.policy.kind) return;
+  if (kind === "human_present") { await api("/api/policy", { method: "POST", body: JSON.stringify({ kind }) }).catch((e) => toast(e.message)); return loadState(); }
+  issueMandates();
+};
+async function issueMandates() {
+  const allowedSkus = [...document.querySelectorAll("#skus input:checked")].map((x) => x.value);
+  try {
+    await api("/api/policy", { method: "POST", body: JSON.stringify({
+      kind: "human_not_present",
+      maxPerPurchase: Math.round(Number($("maxPer").value) * 100),
+      budget: Math.round(Number($("budget").value) * 100),
+      allowedSkus,
+    }) });
+    await loadState();
+  } catch (e) { toast(e.message); }
+}
+$("issue").onclick = issueMandates;
+$("refresh").onclick = () => loadState().then(() => toast("잔액 갱신")).catch((e) => toast(e.message));
+
+// ── MetaMask ──
+const eth = window.ethereum;
+const hexChain = () => "0x" + Number(state.chainId).toString(16);
+async function ensureChain() {
+  const current = await eth.request({ method: "eth_chainId" });
+  if (current?.toLowerCase() === hexChain()) return;
+  try {
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexChain() }] });
+  } catch (err) {
+    throw new Error(`MetaMask를 ${state.network} 네트워크로 바꿔주세요 (${err.message || err})`);
+  }
+}
+async function connectMetaMask() {
+  if (!eth) { toast("MetaMask가 설치되어 있지 않습니다"); return; }
+  try {
+    const [account] = await eth.request({ method: "eth_requestAccounts" });
+    await ensureChain();
+    await api("/api/signer", { method: "POST", body: JSON.stringify({ mode: "metamask", address: account }) });
+    await loadState();
+  } catch (err) { toast(err.message || String(err)); }
+}
+async function handleSignRequest(e) {
+  const { requestId, from, typedData } = e.detail;
+  const live = e.seq > initialSeq || state?.pendingSignIds?.includes(requestId);
+  if (!live || handledSigns.has(requestId)) return;
+  handledSigns.add(requestId);
+  const reply = (body) => api(`/api/sign/${requestId}`, { method: "POST", body: JSON.stringify(body) }).catch((err) => toast(err.message));
+  if (!eth) return reply({ error: "MetaMask not available" });
+  try {
+    const [account] = await eth.request({ method: "eth_accounts" });
+    if (!account || account.toLowerCase() !== from.toLowerCase()) throw new Error(`MetaMask 계정을 ${from}(으)로 선택해주세요`);
+    await ensureChain();
+    const signature = await eth.request({ method: "eth_signTypedData_v4", params: [from, JSON.stringify(typedData)] });
+    reply({ signature });
+  } catch (err) {
+    reply({ error: err?.code === 4001 ? "user rejected the request" : (err.message || String(err)) });
+  }
+}
+$("s-mm").onclick = () => connectMetaMask();
+$("s-server").onclick = async () => { await api("/api/signer", { method: "POST", body: JSON.stringify({ mode: "server" }) }).catch((e) => toast(e.message)); loadState(); };
+if (eth) {
+  eth.on?.("accountsChanged", async ([account]) => {
+    if (state?.signer?.mode !== "metamask") return;
+    if (account) await api("/api/signer", { method: "POST", body: JSON.stringify({ mode: "metamask", address: account }) }).catch((e) => toast(e.message));
+    loadState();
+  });
+} else {
+  $("s-mm").title = "MetaMask 확장이 필요합니다";
+}
+
+// ── boot ──
+let initialSeq = 0;
+function startEvents() {
+  const es = new EventSource(`/api/events?token=${encodeURIComponent(TOKEN)}`);
+  es.onopen = () => { $("conn").textContent = "● 연결됨"; };
+  es.onerror = () => { $("conn").textContent = "○ 재연결 중…"; };
+  es.onmessage = (m) => onEvent(JSON.parse(m.data));
+}
+// Load state first so replayed events (seq <= initialSeq) never re-trigger a MetaMask prompt.
+loadState().then(() => { initialSeq = state.seq; startEvents(); }).catch((e) => toast("상태 로드 실패: " + e.message));
+render();
+</script>
+</body>
+</html>
